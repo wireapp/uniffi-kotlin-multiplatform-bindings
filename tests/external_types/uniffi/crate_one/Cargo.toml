@@ -1,0 +1,8 @@
+[package]
+name = "crate_one"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "crate_one"
+crate-type = ["cdylib", "staticlib", "rlib"]
