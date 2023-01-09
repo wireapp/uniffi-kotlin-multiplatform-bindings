@@ -29,4 +29,4 @@ macro_rules! impl_code_type_for_miscellany {
 
 impl_code_type_for_miscellany!(TimestampCodeType, "kotlinx.datetime.Instant", "Instant");
 
-impl_code_type_for_miscellany!(DurationCodeType, "kotlinx.datetime.Duration", "Duration");
+impl_code_type_for_miscellany!(DurationCodeType, "kotlin.time.Duration", "Duration");
