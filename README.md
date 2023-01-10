@@ -1,5 +1,9 @@
 # uniffi-kotlin-multiplatform-bindings
 
+forked from https://gitlab.com/trixnity/uniffi-kotlin-multiplatform-bindings
+
+---
+
 This project contains Kotlin Multiplatform bindings generation for [uniffi](https://github.com/mozilla/uniffi-rs).
 
 Currently only the Kotlin targets JVM and Native are supported. JS support would be awesome, but needs WASM support within uniffi.
