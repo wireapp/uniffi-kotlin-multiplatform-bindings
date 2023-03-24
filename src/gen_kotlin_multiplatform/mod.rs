@@ -5,9 +5,8 @@ use anyhow::{Context, Result};
 use askama::Template;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::backend::{CodeOracle, CodeType, TypeIdentifier};
-use uniffi_bindgen::ComponentInterface;
 use uniffi_bindgen::interface::{CallbackInterface, Enum, Error, FfiType, Object, Record, Type};
-use uniffi_bindgen::interface::FfiType::ForeignBytes;
+use uniffi_bindgen::ComponentInterface;
 
 use crate::{Config, KotlinMultiplatformBindings};
 
@@ -33,10 +32,7 @@ macro_rules! kotlin_template {
 
         impl<'ci> $KotlinTemplate<'ci> {
             pub fn new(config: Config, ci: &'ci ComponentInterface) -> Self {
-                Self {
-                    config,
-                    ci,
-                }
+                Self { config, ci }
             }
 
             pub fn initialization_fns(&self) -> Vec<String> {
@@ -61,7 +57,12 @@ macro_rules! kotlin_callback_interface_template {
         }
 
         impl<'cbi> $KotlinTemplate<'cbi> {
-            pub fn new(cbi: &'cbi CallbackInterface, type_name: String, foreign_callback_name: String, ffi_converter_name: String) -> Self {
+            pub fn new(
+                cbi: &'cbi CallbackInterface,
+                type_name: String,
+                foreign_callback_name: String,
+                ffi_converter_name: String,
+            ) -> Self {
                 Self {
                     cbi,
                     type_name,
@@ -74,7 +75,11 @@ macro_rules! kotlin_callback_interface_template {
 }
 
 #[derive(Template)]
-#[template(syntax = "kt", escape = "none", path = "common/CustomTypeTemplate.kt.j2")]
+#[template(
+    syntax = "kt",
+    escape = "none",
+    path = "common/CustomTypeTemplate.kt.j2"
+)]
 pub struct CustomTypeTemplateCommon {
     config: Config,
     name: String,
@@ -83,7 +88,12 @@ pub struct CustomTypeTemplateCommon {
 }
 
 impl CustomTypeTemplateCommon {
-    pub fn new(config: Config, name: String, ffi_converter_name: String, builtin: Box<Type>) -> Self {
+    pub fn new(
+        config: Config,
+        name: String,
+        ffi_converter_name: String,
+        builtin: Box<Type>,
+    ) -> Self {
         Self {
             config,
             ffi_converter_name,
@@ -156,10 +166,7 @@ pub struct ObjectTemplateCommon<'e> {
 
 impl<'e> ObjectTemplateCommon<'e> {
     pub fn new(obj: &'e Object, type_name: String) -> Self {
-        Self {
-            obj,
-            type_name,
-        }
+        Self { obj, type_name }
     }
 }
 
@@ -218,7 +225,11 @@ impl SequenceTemplateCommon {
 }
 
 #[derive(Template)]
-#[template(syntax = "c", escape = "none", path = "headers/BridgingHeaderTemplate.h.j2")]
+#[template(
+    syntax = "c",
+    escape = "none",
+    path = "headers/BridgingHeaderTemplate.h.j2"
+)]
 pub struct BridgingHeader<'ci> {
     _config: Config,
     ci: &'ci ComponentInterface,
@@ -236,35 +247,61 @@ impl<'ci> BridgingHeader<'ci> {
 macro_rules! render_kotlin_template {
     ($template:ident, $file_name:literal, $map:ident) => {
         let file_name = $file_name.to_string();
-        let context = format!("failed to render kotlin binding {}",stringify!($T));
+        let context = format!("failed to render kotlin binding {}", stringify!($T));
         $map.insert(file_name, $template.render().context(context).unwrap());
     };
 
     ($template:ident, $file_name:ident, $map:ident) => {
         let file_name = $file_name;
-        let context = format!("failed to render kotlin binding {}",stringify!($T));
+        let context = format!("failed to render kotlin binding {}", stringify!($T));
         $map.insert(file_name, $template.render().context(context).unwrap());
     };
 }
 
-kotlin_template!(TopLevelFunctionsTemplateCommon,"common/TopLevelFunctionsTemplate.kt.j2");
-kotlin_template!(UniFFILibTemplateCommon,"common/UniFFILibTemplate.kt.j2");
-kotlin_callback_interface_template!(CallbackInterfaceTemplateCommon, "common/CallbackInterfaceTemplate.kt.j2");
+kotlin_template!(
+    TopLevelFunctionsTemplateCommon,
+    "common/TopLevelFunctionsTemplate.kt.j2"
+);
+kotlin_template!(UniFFILibTemplateCommon, "common/UniFFILibTemplate.kt.j2");
+kotlin_callback_interface_template!(
+    CallbackInterfaceTemplateCommon,
+    "common/CallbackInterfaceTemplate.kt.j2"
+);
 
-kotlin_template!(RustBufferTemplateJvm,"jvm/RustBufferTemplate.kt.j2");
-kotlin_template!(UniFFILibTemplateJvm,"jvm/UniFFILibTemplate.kt.j2");
-kotlin_callback_interface_template!(CallbackInterfaceTemplateJvm, "jvm/CallbackInterfaceTemplate.kt.j2");
+kotlin_template!(RustBufferTemplateJvm, "jvm/RustBufferTemplate.kt.j2");
+kotlin_template!(UniFFILibTemplateJvm, "jvm/UniFFILibTemplate.kt.j2");
+kotlin_callback_interface_template!(
+    CallbackInterfaceTemplateJvm,
+    "jvm/CallbackInterfaceTemplate.kt.j2"
+);
 
-kotlin_template!(ForeignBytesTemplateNative,"native/ForeignBytesTemplate.kt.j2");
-kotlin_template!(RustBufferTemplateNative,"native/RustBufferTemplate.kt.j2");
-kotlin_template!(RustCallStatusTemplateNative,"native/RustCallStatusTemplate.kt.j2");
-kotlin_template!(UniFFILibTemplateNative,"native/UniFFILibTemplate.kt.j2");
-kotlin_callback_interface_template!(CallbackInterfaceTemplateNative, "native/CallbackInterfaceTemplate.kt.j2");
+kotlin_template!(
+    ForeignBytesTemplateNative,
+    "native/ForeignBytesTemplate.kt.j2"
+);
+kotlin_template!(RustBufferTemplateNative, "native/RustBufferTemplate.kt.j2");
+kotlin_template!(
+    RustCallStatusTemplateNative,
+    "native/RustCallStatusTemplate.kt.j2"
+);
+kotlin_template!(UniFFILibTemplateNative, "native/UniFFILibTemplate.kt.j2");
+kotlin_callback_interface_template!(
+    CallbackInterfaceTemplateNative,
+    "native/CallbackInterfaceTemplate.kt.j2"
+);
 
-pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<KotlinMultiplatformBindings> {
+pub fn generate_bindings(
+    config: &Config,
+    ci: &ComponentInterface,
+) -> Result<KotlinMultiplatformBindings> {
     let mut common_wrapper: HashMap<String, String> = HashMap::new();
-    let top_level_functions_template_common = TopLevelFunctionsTemplateCommon::new(config.clone(), ci);
-    render_kotlin_template!(top_level_functions_template_common, "TopLevelFunctions.kt", common_wrapper);
+    let top_level_functions_template_common =
+        TopLevelFunctionsTemplateCommon::new(config.clone(), ci);
+    render_kotlin_template!(
+        top_level_functions_template_common,
+        "TopLevelFunctions.kt",
+        common_wrapper
+    );
     let uniffilib_template_common = UniFFILibTemplateCommon::new(config.clone(), ci);
     render_kotlin_template!(uniffilib_template_common, "UniFFILib.kt", common_wrapper);
     for type_ in ci.iter_types() {
@@ -276,7 +313,8 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
                 let cbi: &CallbackInterface = ci.get_callback_interface_definition(name).unwrap();
                 let type_name = filters::type_name(cbi).unwrap();
                 let template = CallbackInterfaceTemplateCommon::new(
-                    cbi, type_name.clone(),
+                    cbi,
+                    type_name.clone(),
                     format!("ForeignCallback{}", canonical_type_name),
                     ffi_converter_name,
                 );
@@ -286,7 +324,10 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
 
             Type::Custom { name, builtin } => {
                 let template = CustomTypeTemplateCommon::new(
-                    config.clone(), name.clone(), ffi_converter_name, builtin.clone(),
+                    config.clone(),
+                    name.clone(),
+                    ffi_converter_name,
+                    builtin.clone(),
                 );
                 let file_name = format!("{}.kt", name);
                 render_kotlin_template!(template, file_name, common_wrapper);
@@ -295,9 +336,8 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
             Type::Enum(name) => {
                 let e: &Enum = ci.get_enum_definition(name).unwrap();
                 let type_name = filters::type_name(type_).unwrap();
-                let template = EnumTemplateCommon::new(
-                    e, type_name.clone(), contains_object_references,
-                );
+                let template =
+                    EnumTemplateCommon::new(e, type_name.clone(), contains_object_references);
                 let file_name = format!("{}.kt", type_name);
                 render_kotlin_template!(template, file_name, common_wrapper);
             }
@@ -305,9 +345,8 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
             Type::Error(name) => {
                 let e: &Error = ci.get_error_definition(name).unwrap();
                 let type_name = filters::type_name(type_).unwrap();
-                let template = ErrorTemplateCommon::new(
-                    e, type_name.clone(), contains_object_references,
-                );
+                let template =
+                    ErrorTemplateCommon::new(e, type_name.clone(), contains_object_references);
                 let file_name = format!("{}.kt", type_name);
                 render_kotlin_template!(template, file_name, common_wrapper);
             }
@@ -318,7 +357,9 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
 
             Type::Map(key_type, value_type) => {
                 let template = MapTemplateCommon::new(
-                    key_type.clone(), value_type.clone(), ffi_converter_name.clone(),
+                    key_type.clone(),
+                    value_type.clone(),
+                    ffi_converter_name.clone(),
                 );
                 let file_name = format!("{}.kt", ffi_converter_name);
                 render_kotlin_template!(template, file_name, common_wrapper);
@@ -393,11 +434,19 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
 
     let mut native_wrapper: HashMap<String, String> = HashMap::new();
     let foreign_bytes_template_native = ForeignBytesTemplateNative::new(config.clone(), ci);
-    render_kotlin_template!(foreign_bytes_template_native, "ForeignBytes.kt", native_wrapper);
+    render_kotlin_template!(
+        foreign_bytes_template_native,
+        "ForeignBytes.kt",
+        native_wrapper
+    );
     let rust_buffer_template_native = RustBufferTemplateNative::new(config.clone(), ci);
     render_kotlin_template!(rust_buffer_template_native, "RustBuffer.kt", native_wrapper);
     let rust_call_status_template_native = RustCallStatusTemplateNative::new(config.clone(), ci);
-    render_kotlin_template!(rust_call_status_template_native, "RustCallStatus.kt", native_wrapper);
+    render_kotlin_template!(
+        rust_call_status_template_native,
+        "RustCallStatus.kt",
+        native_wrapper
+    );
     let uniffilib_template_native = UniFFILibTemplateNative::new(config.clone(), ci);
     render_kotlin_template!(uniffilib_template_native, "UniFFILib.kt", native_wrapper);
     for type_ in ci.iter_types() {
@@ -425,14 +474,12 @@ pub fn generate_bindings(config: &Config, ci: &ComponentInterface) -> Result<Kot
         .render()
         .context("failed to render Kotlin/Native bridging header")?;
 
-    Ok(
-        KotlinMultiplatformBindings {
-            common: common_wrapper,
-            jvm: jvm_wrapper,
-            native: native_wrapper,
-            header,
-        }
-    )
+    Ok(KotlinMultiplatformBindings {
+        common: common_wrapper,
+        jvm: jvm_wrapper,
+        native: native_wrapper,
+        header,
+    })
 }
 
 #[derive(Clone)]
@@ -495,7 +542,7 @@ impl KotlinCodeOracle {
             FfiType::Float32 => "float".into(),
             FfiType::Float64 => "double".into(),
             FfiType::RustArcPtr(_) => "void*_Nonnull".into(),
-            FfiType::RustBuffer => "RustBuffer".into(),
+            FfiType::RustBuffer(_) => "RustBuffer".into(),
             FfiType::ForeignBytes => "ForeignBytes".into(),
             FfiType::ForeignCallback => "ForeignCallback  _Nonnull".to_string(),
         }
@@ -554,7 +601,7 @@ impl CodeOracle for KotlinCodeOracle {
             FfiType::Float32 => "Float".to_string(),
             FfiType::Float64 => "Double".to_string(),
             FfiType::RustArcPtr(_) => "Pointer".to_string(),
-            FfiType::RustBuffer => "RustBuffer".to_string(),
+            FfiType::RustBuffer(_) => "RustBuffer".to_string(),
             FfiType::ForeignBytes => "ForeignBytes".to_string(),
             FfiType::ForeignCallback => "ForeignCallback".to_string(),
         }

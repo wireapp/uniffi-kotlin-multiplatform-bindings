@@ -5,10 +5,10 @@ use std::io::Write;
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
-use include_dir::{Dir, include_dir};
+use include_dir::{include_dir, Dir};
 use serde::{Deserialize, Serialize};
-use uniffi_bindgen::{BindingGenerator, BindingGeneratorConfig, ComponentInterface};
 use uniffi_bindgen::backend::TemplateExpression;
+use uniffi_bindgen::{BindingGenerator, BindingGeneratorConfig, ComponentInterface};
 
 pub use gen_kotlin_multiplatform::generate_bindings;
 
@@ -53,7 +53,7 @@ impl Config {
 impl BindingGeneratorConfig for Config {
     fn get_entry_from_bindings_table(_bindings: &toml::value::Value) -> Option<toml::value::Value> {
         if let Some(table) = _bindings.as_table() {
-            table.get("kotlin-native").map (|v| v.clone())
+            table.get("kotlin-native").map(|v| v.clone())
         } else {
             None
         }
