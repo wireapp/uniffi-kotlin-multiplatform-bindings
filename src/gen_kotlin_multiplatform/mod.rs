@@ -6,8 +6,8 @@ use askama::Template;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::backend::{CodeOracle, CodeType, TypeIdentifier};
 use uniffi_bindgen::ComponentInterface;
-use uniffi_bindgen::interface::{CallbackInterface, Enum, Error, FFIType, Object, Record, Type};
-use uniffi_bindgen::interface::FFIType::ForeignBytes;
+use uniffi_bindgen::interface::{CallbackInterface, Enum, Error, FfiType, Object, Record, Type};
+use uniffi_bindgen::interface::FfiType::ForeignBytes;
 
 use crate::{Config, KotlinMultiplatformBindings};
 
@@ -482,22 +482,22 @@ impl KotlinCodeOracle {
         }
     }
 
-    fn ffi_header_type_label(&self, ffi_type: &FFIType) -> String {
+    fn ffi_header_type_label(&self, ffi_type: &FfiType) -> String {
         match ffi_type {
-            FFIType::Int8 => "int8_t".into(),
-            FFIType::UInt8 => "uint8_t".into(),
-            FFIType::Int16 => "int16_t".into(),
-            FFIType::UInt16 => "uint16_t".into(),
-            FFIType::Int32 => "int32_t".into(),
-            FFIType::UInt32 => "uint32_t".into(),
-            FFIType::Int64 => "int64_t".into(),
-            FFIType::UInt64 => "uint64_t".into(),
-            FFIType::Float32 => "float".into(),
-            FFIType::Float64 => "double".into(),
-            FFIType::RustArcPtr(_) => "void*_Nonnull".into(),
-            FFIType::RustBuffer => "RustBuffer".into(),
-            FFIType::ForeignBytes => "ForeignBytes".into(),
-            FFIType::ForeignCallback => "ForeignCallback  _Nonnull".to_string(),
+            FfiType::Int8 => "int8_t".into(),
+            FfiType::UInt8 => "uint8_t".into(),
+            FfiType::Int16 => "int16_t".into(),
+            FfiType::UInt16 => "uint16_t".into(),
+            FfiType::Int32 => "int32_t".into(),
+            FfiType::UInt32 => "uint32_t".into(),
+            FfiType::Int64 => "int64_t".into(),
+            FfiType::UInt64 => "uint64_t".into(),
+            FfiType::Float32 => "float".into(),
+            FfiType::Float64 => "double".into(),
+            FfiType::RustArcPtr(_) => "void*_Nonnull".into(),
+            FfiType::RustBuffer => "RustBuffer".into(),
+            FfiType::ForeignBytes => "ForeignBytes".into(),
+            FfiType::ForeignCallback => "ForeignCallback  _Nonnull".to_string(),
         }
     }
 }
@@ -541,22 +541,22 @@ impl CodeOracle for KotlinCodeOracle {
         }
     }
 
-    fn ffi_type_label(&self, ffi_type: &FFIType) -> String {
+    fn ffi_type_label(&self, ffi_type: &FfiType) -> String {
         match ffi_type {
-            FFIType::Int8 => "Byte".to_string(),
-            FFIType::UInt8 => "UByte".to_string(),
-            FFIType::Int16 => "Short".to_string(),
-            FFIType::UInt16 => "UShort".to_string(),
-            FFIType::Int32 => "Int".to_string(),
-            FFIType::UInt32 => "UInt".to_string(),
-            FFIType::Int64 => "Long".to_string(),
-            FFIType::UInt64 => "ULong".to_string(),
-            FFIType::Float32 => "Float".to_string(),
-            FFIType::Float64 => "Double".to_string(),
-            FFIType::RustArcPtr(_) => "Pointer".to_string(),
-            FFIType::RustBuffer => "RustBuffer".to_string(),
-            FFIType::ForeignBytes => "ForeignBytes".to_string(),
-            FFIType::ForeignCallback => "ForeignCallback".to_string(),
+            FfiType::Int8 => "Byte".to_string(),
+            FfiType::UInt8 => "UByte".to_string(),
+            FfiType::Int16 => "Short".to_string(),
+            FfiType::UInt16 => "UShort".to_string(),
+            FfiType::Int32 => "Int".to_string(),
+            FfiType::UInt32 => "UInt".to_string(),
+            FfiType::Int64 => "Long".to_string(),
+            FfiType::UInt64 => "ULong".to_string(),
+            FfiType::Float32 => "Float".to_string(),
+            FfiType::Float64 => "Double".to_string(),
+            FfiType::RustArcPtr(_) => "Pointer".to_string(),
+            FfiType::RustBuffer => "RustBuffer".to_string(),
+            FfiType::ForeignBytes => "ForeignBytes".to_string(),
+            FfiType::ForeignCallback => "ForeignCallback".to_string(),
         }
     }
 }
@@ -612,12 +612,12 @@ pub mod filters {
         Ok(codetype.literal(oracle(), literal))
     }
 
-    /// Get the Kotlin syntax for representing a given low-level `FFIType`.
-    pub fn ffi_type_name(type_: &FFIType) -> Result<String, askama::Error> {
+    /// Get the Kotlin syntax for representing a given low-level `FfiType`.
+    pub fn ffi_type_name(type_: &FfiType) -> Result<String, askama::Error> {
         Ok(oracle().ffi_type_label(type_))
     }
 
-    pub fn ffi_header_type_name(type_: &FFIType) -> Result<String, askama::Error> {
+    pub fn ffi_header_type_name(type_: &FfiType) -> Result<String, askama::Error> {
         Ok(oracle().ffi_header_type_label(type_))
     }
 
