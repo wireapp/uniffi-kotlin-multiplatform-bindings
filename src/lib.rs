@@ -52,7 +52,11 @@ impl Config {
 
 impl BindingGeneratorConfig for Config {
     fn get_entry_from_bindings_table(_bindings: &toml::value::Value) -> Option<toml::value::Value> {
-        None // FIXME what does it do?
+        if let Some(table) = _bindings.as_table() {
+            table.get("kotlin-native").map (|v| v.clone())
+        } else {
+            None
+        }
     }
 
     fn get_config_defaults(ci: &ComponentInterface) -> Vec<(String, toml::value::Value)> {
