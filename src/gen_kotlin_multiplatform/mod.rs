@@ -351,7 +351,7 @@ pub fn generate_bindings(
                 render_kotlin_template!(template, file_name, common_wrapper);
             }
 
-            Type::External { name, crate_name } => {
+            Type::External { name, crate_name, kind } => {
                 // TODO this need specific imports in some classes.
             }
 
@@ -365,7 +365,7 @@ pub fn generate_bindings(
                 render_kotlin_template!(template, file_name, common_wrapper);
             }
 
-            Type::Object(name) => {
+            Type::Object { name, .. } => {
                 let obj: &Object = ci.get_object_definition(name).unwrap();
                 let type_name = filters::type_name(type_).unwrap();
                 let template = ObjectTemplateCommon::new(
@@ -440,7 +440,11 @@ pub fn generate_bindings(
         native_wrapper
     );
     let rust_buffer_template_native = RustBufferTemplateNative::new(config.clone(), ci);
-    render_kotlin_template!(rust_buffer_template_native, "RustBuffer.kt", native_wrapper);
+    render_kotlin_template!(
+        rust_buffer_template_native,
+        "RustBuffer.kt",
+        native_wrapper
+    );
     let rust_call_status_template_native = RustCallStatusTemplateNative::new(config.clone(), ci);
     render_kotlin_template!(
         rust_call_status_template_native,
@@ -448,7 +452,11 @@ pub fn generate_bindings(
         native_wrapper
     );
     let uniffilib_template_native = UniFFILibTemplateNative::new(config.clone(), ci);
-    render_kotlin_template!(uniffilib_template_native, "UniFFILib.kt", native_wrapper);
+    render_kotlin_template!(
+        uniffilib_template_native,
+        "UniFFILib.kt",
+        native_wrapper
+    );
     for type_ in ci.iter_types() {
         let canonical_type_name = filters::canonical_name(type_).unwrap();
         let ffi_converter_name = filters::ffi_converter_name(type_).unwrap();
@@ -512,7 +520,7 @@ impl KotlinCodeOracle {
             Type::Duration => Box::new(miscellany::DurationCodeType),
 
             Type::Enum(id) => Box::new(enum_::EnumCodeType::new(id)),
-            Type::Object(id) => Box::new(object::ObjectCodeType::new(id)),
+            Type::Object{ name, .. } => Box::new(object::ObjectCodeType::new(name)),
             Type::Record(id) => Box::new(record::RecordCodeType::new(id)),
             Type::Error(id) => Box::new(error::ErrorCodeType::new(id)),
             Type::CallbackInterface(id) => {
@@ -523,9 +531,8 @@ impl KotlinCodeOracle {
             Type::Map(key, value) => Box::new(compounds::MapCodeType::new(*key, *value)),
             Type::External { name, .. } => Box::new(external::ExternalCodeType::new(name)),
             Type::Custom { name, .. } => Box::new(custom::CustomCodeType::new(name)),
-            Type::Unresolved { name } => {
-                unreachable!("Type `{name}` must be resolved before calling create_code_type")
-            }
+            // TODO handle async types
+            _ => todo!()
         }
     }
 
@@ -545,6 +552,8 @@ impl KotlinCodeOracle {
             FfiType::RustBuffer(_) => "RustBuffer".into(),
             FfiType::ForeignBytes => "ForeignBytes".into(),
             FfiType::ForeignCallback => "ForeignCallback  _Nonnull".to_string(),
+            // TODO handle async types
+            _ => todo!(),
         }
     }
 }
@@ -604,6 +613,8 @@ impl CodeOracle for KotlinCodeOracle {
             FfiType::RustBuffer(_) => "RustBuffer".to_string(),
             FfiType::ForeignBytes => "ForeignBytes".to_string(),
             FfiType::ForeignCallback => "ForeignCallback".to_string(),
+            // TODO handle async types
+            _ => todo!()
         }
     }
 }
