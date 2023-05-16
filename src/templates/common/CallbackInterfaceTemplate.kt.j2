@@ -17,7 +17,7 @@ object {{ foreign_callback_name }} {
         return when (method) {
             IDX_CALLBACK_FREE -> {
                 {{ ffi_converter_name }}.drop(handle)
-                0
+                UNIFFI_CALLBACK_SUCCESS
             }
             {% for meth in cbi.methods() -%}
             {% let method_name = format!("invoke_{}", meth.name())|fn_name -%}
@@ -28,24 +28,24 @@ object {{ foreign_callback_name }} {
                     try {
                         val buffer = this.{{ method_name }}(cb, args)
                         outBuf.setValue(buffer)
-                        1
+                        UNIFFI_CALLBACK_SUCCESS
                     } catch (e: {{ error_type|type_name }}) {
                         val buffer = {{ error_type|ffi_converter_name }}.lowerIntoRustBuffer(e)
                         outBuf.setValue(buffer)
-                        -2
+                        UNIFFI_CALLBACK_ERROR
                     }
                     {%- else %}
                     val buffer = this.{{ method_name }}(cb, args)
                     // Success
                     outBuf.setValue(buffer)
-                    1
+                    UNIFFI_CALLBACK_SUCCESS
                     {%- endmatch %}
                 } catch (e: Throwable) {
                     try {
                         outBuf.setValue({{ Type::String.borrow()|ffi_converter_name }}.lower(e.toString()))
                     } catch (e: Throwable) {
                     }
-                    -1
+                    UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
             {% endfor %}
@@ -54,7 +54,7 @@ object {{ foreign_callback_name }} {
                     outBuf.setValue({{ Type::String.borrow()|ffi_converter_name }}.lower("Invalid Callback index"))
                 } catch (e: Throwable) {
                 }
-                -1
+                UNIFFI_CALLBACK_UNEXPECTED_ERROR
             }
         }
     }
