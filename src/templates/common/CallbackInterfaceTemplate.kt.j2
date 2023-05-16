@@ -84,7 +84,7 @@ object {{ foreign_callback_name }} {
                     {{ return_type|ffi_converter_name }}.lowerIntoRustBuffer(it)
                 }
                 {%- else -%}
-                .let { RustBuffer.ByValue() }
+                .let { RustBuffer() }
                 {% endmatch -%}
         } finally {
             args.free()
