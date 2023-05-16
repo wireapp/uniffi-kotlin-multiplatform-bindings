@@ -2,6 +2,46 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+pub struct VoidCallbackProcessor {
+    new_value: u64
+}
+
+pub trait VoidCallback: Send + Sync + std::fmt::Debug {
+    fn call_back(&self, new_value: u64);
+}
+
+impl VoidCallbackProcessor {
+    pub fn new(new_value: u64) -> Self {
+        VoidCallbackProcessor {
+            new_value
+        }
+    }
+
+    pub fn process(&self, void_callback: Box<dyn VoidCallback>) {
+        void_callback.call_back(self.new_value);
+    }
+}
+
+pub trait VoidCallbackWithError: Send + Sync + std::fmt::Debug {
+    fn call_back(&self, new_value: u64) -> Result<(), ComplexError>;
+}
+
+pub struct VoidCallbackWithErrorProcessor {
+    callback: Box<dyn VoidCallbackWithError>
+}
+
+impl VoidCallbackWithErrorProcessor {
+    pub fn new(callback: Box<dyn VoidCallbackWithError>) -> Self {
+        VoidCallbackWithErrorProcessor {
+            callback
+        }
+    }
+
+    pub fn process(&self, new_value: u64) -> Result<(), ComplexError> {
+        self.callback.call_back(new_value)
+    }
+}
+
 trait ForeignGetters {
     fn get_bool(&self, v: bool, argument_two: bool) -> Result<bool, SimpleError>;
     fn get_string(&self, v: String, arg2: bool) -> Result<String, SimpleError>;

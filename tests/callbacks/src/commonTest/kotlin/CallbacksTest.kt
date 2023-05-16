@@ -1,6 +1,7 @@
 import callbacks.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldInclude
 import kotlin.test.Test
 
 class CallbacksTest {
@@ -108,4 +109,50 @@ class CallbacksTest {
         }
         rustStringifier.destroy()
     }
+
+        @Test
+        fun callbackReturningVoid() {
+            val answer = 42uL
+
+            val callback = object : VoidCallback {
+                public var answer: ULong? = null;
+
+                override fun callBack(newValue: ULong) {
+                    this.answer = newValue
+                }
+            }
+
+            VoidCallbackProcessor(answer).use {
+                it.process(callback)
+            }
+
+            callback.answer shouldBe answer
+        }
+
+        @Test
+        fun callBackReturningResultOfVoid() {
+            val answer = 42uL
+            val errorMessage = "That feels off"
+
+            val throwingCallback = object : VoidCallbackWithError {
+                public var answer: ULong? = null;
+
+
+                override fun callBack(newValue: ULong) {
+                    if (newValue != 42uL) {
+                        throw ComplexException.UnexpectedErrorWithReason(errorMessage)
+                    }
+                    this.answer = answer
+                }
+            }
+
+            VoidCallbackWithErrorProcessor(throwingCallback).use {
+                shouldThrow<ComplexException> { it.process(7uL) }
+                    .message shouldInclude errorMessage
+
+                it.process(answer)
+            }
+
+            throwingCallback.answer shouldBe answer
+        }
 }
