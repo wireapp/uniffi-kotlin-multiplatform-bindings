@@ -40,3 +40,7 @@ actual fun RustBufferPointer.setValue(value: RustBuffer) {
     this.pointed.len = value.useContents { len }
     this.pointed.data = value.useContents { data }
 }
+
+actual fun emptyRustBuffer(): RustBuffer {
+    return allocRustBuffer(Buffer())
+}
