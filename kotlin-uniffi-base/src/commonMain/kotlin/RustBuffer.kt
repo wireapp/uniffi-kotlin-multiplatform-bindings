@@ -16,3 +16,5 @@ expect fun RustBuffer.free()
 expect fun allocRustBuffer(buffer: Buffer): RustBuffer
 
 expect fun RustBufferPointer.setValue(value: RustBuffer)
+
+expect fun emptyRustBuffer(): RustBuffer

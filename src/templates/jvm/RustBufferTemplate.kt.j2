@@ -50,3 +50,5 @@ actual fun allocRustBuffer(buffer: Buffer): RustBuffer =
     }
 
 actual fun RustBufferPointer.setValue(value: RustBuffer) = setValueInternal(value)
+
+actual fun emptyRustBuffer(): RustBuffer = RustBuffer()
