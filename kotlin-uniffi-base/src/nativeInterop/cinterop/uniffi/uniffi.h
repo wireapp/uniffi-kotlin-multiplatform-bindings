@@ -2,6 +2,7 @@
 // Trust me, you don't want to mess with it!
 
 #include <stdbool.h>
+#include <stddef.h> // TODO needed for what?
 #include <stdint.h>
 
 // The following structs are used to implement the lowest level
@@ -26,7 +27,10 @@ typedef struct RustBuffer
     uint8_t *_Nullable data;
 } RustBuffer;
 
-typedef int32_t (*ForeignCallback)(uint64_t, int32_t, RustBuffer, RustBuffer *_Nonnull);
+// *_Nonnull is ignored by cinterop
+typedef int32_t (*ForeignCallback)(uint64_t, int32_t, const uint8_t *_Nonnull, int32_t, RustBuffer *_Nonnull);
+
+// FIXME Swift stuff is missing
 
 typedef struct ForeignBytes
 {
@@ -43,6 +47,12 @@ typedef struct RustCallStatus {
 // ⚠️ Attention: If you change this #else block (ending in `#endif // def UNIFFI_SHARED_H`) you *must* ⚠️
 // ⚠️ increment the version suffix in all instances of UNIFFI_SHARED_HEADER_V4 in this file.           ⚠️
 #endif // def UNIFFI_SHARED_H
+
+// FIXME callbacks for UniFFI Futures
+
+// FIXME scaffolding functions?
+
+// FIXME checksum stuff was changed...
 
 RustBuffer ffi_vodozemac_9f49_rustbuffer_alloc(
       int32_t size,

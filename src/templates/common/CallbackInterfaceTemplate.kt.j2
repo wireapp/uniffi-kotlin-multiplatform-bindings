@@ -12,7 +12,7 @@ interface {{ type_name }} {
 
 object {{ foreign_callback_name }} {
     @Suppress("TooGenericExceptionCaught")
-    fun invoke(handle: Handle, method: Int, args: RustBuffer, outBuf: RustBufferPointer): Int {
+    fun invoke(handle: Handle, method: Int, argsData: UBytePointer, argsLen: Int, outBuf: RustBufferPointer): Int {
         val cb = {{ ffi_converter_name }}.lift(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -26,7 +26,7 @@ object {{ foreign_callback_name }} {
                     {%- match meth.throws_type() %}
                     {%- when Some(error_type) %}
                     try {
-                        val buffer = this.{{ method_name }}(cb, args)
+                        val buffer = this.{{ method_name }}(cb, argsData, argsLen)
                         outBuf.setValue(buffer)
                         UNIFFI_CALLBACK_SUCCESS
                     } catch (e: {{ error_type|type_name }}) {
@@ -35,7 +35,7 @@ object {{ foreign_callback_name }} {
                         UNIFFI_CALLBACK_ERROR
                     }
                     {%- else %}
-                    val buffer = this.{{ method_name }}(cb, args)
+                    val buffer = this.{{ method_name }}(cb, argsData, argsLen)
                     // Success
                     outBuf.setValue(buffer)
                     UNIFFI_CALLBACK_SUCCESS
@@ -61,12 +61,14 @@ object {{ foreign_callback_name }} {
 
     {% for meth in cbi.methods() -%}
     {% let method_name = format!("invoke_{}", meth.name())|fn_name %}
-    private fun {{ method_name }}(kotlinCallbackInterface: {{ type_name }}, args: RustBuffer): RustBuffer =
+    private fun {{ method_name }}(kotlinCallbackInterface: {{ type_name }}, argsData: UBytePointer, argsLen: Int): RustBuffer =
+        // FIXME all calls to args, buffers etc
         try {
         {#- Unpacking args from the RustBuffer #}
             {%- if meth.arguments().len() != 0 -%}
             {#- Calling the concrete callback object #}
-            val buf = checkNotNull(args.toBuffer()) { "No Buffer in RustBuffer; this is a Uniffi bug" }
+            {# val buf = checkNotNull(args.toBuffer()) { "No Buffer in RustBuffer; this is a Uniffi bug" } #}
+            val buf = argsData.copyToBuffer(argsLen.toLong())
             kotlinCallbackInterface.{{ meth.name()|fn_name }}(
                     {% for arg in meth.arguments() -%}
                     {{ arg|read_fn }}(buf)
@@ -87,7 +89,8 @@ object {{ foreign_callback_name }} {
                 .let { emptyRustBuffer() }
                 {% endmatch -%}
         } finally {
-            args.free()
+            // FIXME
+            // args.free()
         }
 
     {% endfor %}
