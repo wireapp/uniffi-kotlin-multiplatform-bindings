@@ -74,8 +74,8 @@ object {{ obj|ffi_converter_name }}: FfiConverter<{{ type_name }}, Pointer> {
         return {{ type_name }}(value)
     }
 
-    override fun read(buf: Buffer): {{ type_name }} {
-        return lift(buf.readLong().toPointer())
+    override fun read(source: NoCopySource): {{ type_name }} {
+        return lift(source.readLong().toPointer())
     }
 
     override fun allocationSize(value: {{ type_name }}) = 8

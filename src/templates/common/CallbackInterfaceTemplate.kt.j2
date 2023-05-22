@@ -60,18 +60,15 @@ object {{ foreign_callback_name }} {
     }
 
     {% for meth in cbi.methods() -%}
-    {% let method_name = format!("invoke_{}", meth.name())|fn_name %}
-    private fun {{ method_name }}(kotlinCallbackInterface: {{ type_name }}, argsData: UBytePointer, argsLen: Int): RustBuffer =
-        // FIXME all calls to args, buffers etc
-        try {
+        {% let method_name = format!("invoke_{}", meth.name())|fn_name %}
+        private fun {{ method_name }}(kotlinCallbackInterface: {{ type_name }}, argsData: UBytePointer, argsLen: Int): RustBuffer {
         {#- Unpacking args from the RustBuffer #}
             {%- if meth.arguments().len() != 0 -%}
             {#- Calling the concrete callback object #}
-            {# val buf = checkNotNull(args.toBuffer()) { "No Buffer in RustBuffer; this is a Uniffi bug" } #}
-            val buf = argsData.copyToBuffer(argsLen.toLong())
-            kotlinCallbackInterface.{{ meth.name()|fn_name }}(
+            val source = argsData.asSource(argsLen.toLong())
+            return kotlinCallbackInterface.{{ meth.name()|fn_name }}(
                     {% for arg in meth.arguments() -%}
-                    {{ arg|read_fn }}(buf)
+                    {{ arg|read_fn }}(source)
                     {%- if !loop.last %}, {% endif %}
                     {% endfor -%}
                 )
@@ -80,19 +77,15 @@ object {{ foreign_callback_name }} {
             {% endif -%}
 
         {#- Packing up the return value into a RustBuffer #}
-                {%- match meth.return_type() -%}
-                {%- when Some with (return_type) -%}
-                .let {
-                    {{ return_type|ffi_converter_name }}.lowerIntoRustBuffer(it)
-                }
-                {%- else -%}
-                .let { emptyRustBuffer() }
-                {% endmatch -%}
-        } finally {
-            // FIXME
-            // args.free()
+            {%- match meth.return_type() -%}
+            {%- when Some with (return_type) -%}
+            .let {
+                {{ return_type|ffi_converter_name }}.lowerIntoRustBuffer(it)
+            }
+            {%- else -%}
+            .let { emptyRustBuffer() }
+            {% endmatch -%}
         }
-
     {% endfor %}
 }
 

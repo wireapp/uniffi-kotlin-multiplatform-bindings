@@ -7,7 +7,7 @@ expect class RustBuffer
 @Suppress("NO_ACTUAL_FOR_EXPECT")
 expect class RustBufferPointer
 
-expect fun RustBuffer.toBuffer(): Buffer
+expect fun RustBuffer.asSource(): NoCopySource
 
 expect val RustBuffer.dataSize: Int
 

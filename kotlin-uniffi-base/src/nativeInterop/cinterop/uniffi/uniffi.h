@@ -2,7 +2,6 @@
 // Trust me, you don't want to mess with it!
 
 #include <stdbool.h>
-#include <stddef.h> // TODO needed for what?
 #include <stdint.h>
 
 // The following structs are used to implement the lowest level

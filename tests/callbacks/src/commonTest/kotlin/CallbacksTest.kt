@@ -61,7 +61,7 @@ class CallbacksTest {
             val flag = false
             val expected = callback.getOption(v, flag)
             val observed = rustGetters.getOption(callback, v, flag)
-            expected shouldBe observed
+            observed shouldBe expected
         }
 
         rustGetters.getStringOptionalCallback(callback, "TestString", false) shouldBe "TestString"
