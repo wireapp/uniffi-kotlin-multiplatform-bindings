@@ -2,13 +2,16 @@
 @Suppress("NO_ACTUAL_FOR_EXPECT")
 expect class RustCallStatus
 
-fun RustCallStatus.isSuccess(): Boolean = statusCode == 0
+@Suppress("NO_ACTUAL_FOR_EXPECT")
+expect class RustCallStatusByValue
 
-fun RustCallStatus.isError(): Boolean = statusCode == 1
+fun RustCallStatus.isSuccess(): Boolean = statusCode == 0.toByte()
 
-fun RustCallStatus.isPanic(): Boolean = statusCode == 2
+fun RustCallStatus.isError(): Boolean = statusCode == 1.toByte()
 
-expect val RustCallStatus.statusCode: Int
+fun RustCallStatus.isPanic(): Boolean = statusCode == 2.toByte()
+
+expect val RustCallStatus.statusCode: Byte
 
 expect val RustCallStatus.errorBuffer: RustBuffer
 

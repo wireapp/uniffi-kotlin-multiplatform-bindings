@@ -1,0 +1,97 @@
+// Async return type handlers
+
+import kotlinx.cinterop.*
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.test.assertNotNull
+
+// For each result_type, there could be several handlers for different errors and one for the plain type without any error
+// In upstream uniffi, {# UniFfiFutureCallback{{ callback_param.canonical_name() }} #} is a super interface that all the
+// different handlers with and without error implement.
+// This does not work well for Native where we have Pointer types typealiases for CPointer<T> for several T
+// We define a single typealias for the handler that expects no error since the pointer type is identical, anyway
+{%- for callback_param in ci.iter_future_callback_params() %}
+typealias UniFfiFutureCallback{{ callback_param.canonical_name() }} = CPointer<CFunction<(Pointer?, {{ callback_param|ffi_type_name }}, RustCallStatusByValue) -> Unit>>
+{%- endfor %}
+
+
+// Callback handlers for an async call.  These are invoked by Rust when the future is ready.  They
+// lift the return value or error and resume the suspended function.
+{%- for result_type in ci.iter_async_result_types() %}
+{%- let callback_param = result_type.future_callback_param() %}
+
+@Suppress("ACTUAL_WITHOUT_EXPECT", "ACTUAL_TYPE_ALIAS_WITH_COMPLEX_SUBSTITUTION")
+actual typealias {{ result_type|future_callback_handler }} = CPointer<CFunction<(Pointer?, {{ callback_param|ffi_type_name }}, RustCallStatusByValue) -> Unit>>
+
+actual fun create{{ result_type|future_callback_handler }}Data(continuation: {{ result_type|future_continuation_type }})
+                      : {{ result_type|future_callback_handler }}Data {
+    val resultHandler = create{{ result_type|future_callback_handler }}()
+    // see https://kotlinlang.org/docs/native-c-interop.html#pass-user-data-to-callbacks
+    val stableRef = StableRef.create(continuation)
+    return {{ result_type|future_callback_handler }}Data(
+        resultHandler,
+        DropHandle(stableRef),
+        stableRef.asCPointer()
+    )
+}
+
+private fun create{{ result_type|future_callback_handler }}(): {{ result_type|future_callback_handler }} =
+    staticCFunction { callbackData: Pointer?, returnValue: {{ callback_param|ffi_type_name }}, callStatus: RustCallStatusByValue ->
+        assertNotNull(callbackData, "received no continuation to resume...")
+        // the StableRef is disposed in the scope that held onto the DropHandler wrapper
+        val stableRef = callbackData.asStableRef<{{ result_type|future_continuation_type }}>()
+        val continuation = stableRef.get()
+        try {
+            checkCallStatusByValue({{ result_type|error_handler }}, callStatus)
+            {%- match result_type.return_type %}
+            {%- when Some(return_type) %}
+            continuation.resume({{ return_type|lift_fn }}(returnValue))
+            {%- when None %}
+            continuation.resume(Unit)
+            {%- endmatch %}
+        }
+        catch (e: Throwable) {
+            continuation.resumeWithException(e)
+        }
+    }
+
+{%- endfor %}
+
+actual class DropHandle<T>(private val stableRef: StableRef<Continuation<T>>) {
+    actual fun dropIt() {
+        stableRef.dispose()
+    }
+}
+
+private inline fun {{ config.package_name() }}.cinterop.RustCallStatus.isSuccess(): Boolean = code == 0.toByte()
+private inline fun {{ config.package_name() }}.cinterop.RustCallStatus.isError(): Boolean = code == 1.toByte()
+private inline fun {{ config.package_name() }}.cinterop.RustCallStatus.isPanic(): Boolean = code == 2.toByte()
+
+// TODO remove this crutch that is needed because on Native, RustCallStatusByValue does not extend RustCallStatus
+//      and "just getting a pointer to the value" apparently requires copying to a special place and *then* getting
+//      a pointer to that location
+private fun<E: Exception> checkCallStatusByValue(errorHandler: CallStatusErrorHandler<E>, statusByValue: RustCallStatusByValue) {
+    // no need to clean up the call status since the caller received it as a c parameter by value
+    statusByValue.useContents {
+        if (this.isSuccess()) {
+            return
+        } else if (isError()) {
+            throw errorHandler.lift(errorBuf.readValue())
+        } else if (isPanic()) {
+            // when the rust code sees a panic, it tries to construct a rustbuffer
+            // with the message.  but if that code panics, then it just sends back
+            // an empty buffer.
+            val errorBuffer = errorBuf.readValue()
+            if (errorBuffer.dataSize > 0) {
+                // TODO avoid additional copy
+                throw InternalException(FfiConverterString.lift(errorBuffer))
+            } else {
+                throw InternalException("Rust panic")
+            }
+        } else {
+            throw InternalException("Unknown rust call status: $statusByValue.code")
+        }
+    }
+}
+

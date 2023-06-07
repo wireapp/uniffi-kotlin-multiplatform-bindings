@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use askama::Template;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::backend::{CodeOracle, CodeType, TypeIdentifier};
-use uniffi_bindgen::interface::{CallbackInterface, Enum, Error, FfiType, Object, Record, Type};
+use uniffi_bindgen::interface::{Callable, CallbackInterface, Enum, Error, FfiType, Object, Record, Type};
 use uniffi_bindgen::ComponentInterface;
 
 use crate::{Config, KotlinMultiplatformBindings};
@@ -15,6 +15,7 @@ mod compounds;
 mod custom;
 mod enum_;
 mod error;
+mod executor;
 mod external;
 mod miscellany;
 mod object;
@@ -259,6 +260,10 @@ macro_rules! render_kotlin_template {
 }
 
 kotlin_template!(
+    AsyncTypesTemplateCommon,
+    "common/AsyncTypesTemplate.kt.j2"
+);
+kotlin_template!(
     TopLevelFunctionsTemplateCommon,
     "common/TopLevelFunctionsTemplate.kt.j2"
 );
@@ -268,18 +273,33 @@ kotlin_callback_interface_template!(
     "common/CallbackInterfaceTemplate.kt.j2"
 );
 
-kotlin_template!(RustBufferTemplateJvm, "jvm/RustBufferTemplate.kt.j2");
-kotlin_template!(UniFFILibTemplateJvm, "jvm/UniFFILibTemplate.kt.j2");
+kotlin_template!(
+    AsyncTypesTemplateJvm,
+    "jvm/AsyncTypesTemplate.kt.j2"
+);
+kotlin_template!(
+    RustBufferTemplateJvm,
+    "jvm/RustBufferTemplate.kt.j2"
+);
+kotlin_template!(
+    UniFFILibTemplateJvm,
+    "jvm/UniFFILibTemplate.kt.j2"
+);
 kotlin_callback_interface_template!(
     CallbackInterfaceTemplateJvm,
     "jvm/CallbackInterfaceTemplate.kt.j2"
 );
 
 kotlin_template!(
+    AsyncTypesTemplateNative,
+    "native/AsyncTypesTemplate.kt.j2"
+);
+kotlin_template!(
     ForeignBytesTemplateNative,
     "native/ForeignBytesTemplate.kt.j2"
 );
 kotlin_template!(RustBufferTemplateNative, "native/RustBufferTemplate.kt.j2");
+
 kotlin_template!(
     RustCallStatusTemplateNative,
     "native/RustCallStatusTemplate.kt.j2"
@@ -295,6 +315,15 @@ pub fn generate_bindings(
     ci: &ComponentInterface,
 ) -> Result<KotlinMultiplatformBindings> {
     let mut common_wrapper: HashMap<String, String> = HashMap::new();
+    let async_types_template_common = AsyncTypesTemplateCommon::new(
+        config.clone(),
+        ci
+    );
+    render_kotlin_template!(
+        async_types_template_common,
+        "AsyncTypes.kt",
+        common_wrapper
+    );
     let top_level_functions_template_common =
         TopLevelFunctionsTemplateCommon::new(config.clone(), ci);
     render_kotlin_template!(
@@ -407,6 +436,8 @@ pub fn generate_bindings(
     }
 
     let mut jvm_wrapper: HashMap<String, String> = HashMap::new();
+    let async_types_template_jvm = AsyncTypesTemplateJvm::new(config.clone(), ci);
+    render_kotlin_template!(async_types_template_jvm, "AsyncTypes.kt", jvm_wrapper);
     let rust_buffer_template_jvm = RustBufferTemplateJvm::new(config.clone(), ci);
     render_kotlin_template!(rust_buffer_template_jvm, "RustBuffer.kt", jvm_wrapper);
     let uniffilib_template_jvm = UniFFILibTemplateJvm::new(config.clone(), ci);
@@ -433,6 +464,12 @@ pub fn generate_bindings(
     }
 
     let mut native_wrapper: HashMap<String, String> = HashMap::new();
+    let async_types_template_native = AsyncTypesTemplateNative::new(config.clone(), ci);
+    render_kotlin_template!(
+        async_types_template_native,
+        "AsyncTypes.kt",
+        native_wrapper
+    );
     let foreign_bytes_template_native = ForeignBytesTemplateNative::new(config.clone(), ci);
     render_kotlin_template!(
         foreign_bytes_template_native,
@@ -531,8 +568,7 @@ impl KotlinCodeOracle {
             Type::Map(key, value) => Box::new(compounds::MapCodeType::new(*key, *value)),
             Type::External { name, .. } => Box::new(external::ExternalCodeType::new(name)),
             Type::Custom { name, .. } => Box::new(custom::CustomCodeType::new(name)),
-            // TODO handle async types
-            _ => todo!()
+            Type::ForeignExecutor => Box::new(executor::ForeignExecutorCodeType),
         }
     }
 
@@ -551,9 +587,14 @@ impl KotlinCodeOracle {
             FfiType::RustArcPtr(_) => "void*_Nonnull".into(),
             FfiType::RustBuffer(_) => "RustBuffer".into(),
             FfiType::ForeignBytes => "ForeignBytes".into(),
-            FfiType::ForeignCallback => "ForeignCallback  _Nonnull".to_string(),
-            // TODO handle async types
-            _ => todo!(),
+            FfiType::ForeignCallback => "ForeignCallback  _Nonnull".into(),
+            FfiType::ForeignExecutorHandle => "size_t".into(),
+            FfiType::ForeignExecutorCallback => "UniFfiForeignExecutorCallback _Nonnull".into(),
+            FfiType::FutureCallback { return_type } => format!(
+                "UniFfiFutureCallback{} _Nonnull",
+                return_type.canonical_name()
+            ),
+            FfiType::FutureCallbackData => "void* _Nonnull".into(),
         }
     }
 }
@@ -613,14 +654,19 @@ impl CodeOracle for KotlinCodeOracle {
             FfiType::RustBuffer(_) => "RustBuffer".to_string(),
             FfiType::ForeignBytes => "ForeignBytes".to_string(),
             FfiType::ForeignCallback => "ForeignCallback".to_string(),
-            // TODO handle async types
-            _ => todo!()
+            FfiType::ForeignExecutorHandle => "ULong".to_string(),
+            FfiType::ForeignExecutorCallback => "UniFfiForeignExecutorCallback".to_string(),
+            FfiType::FutureCallback { return_type } => {
+                format!("UniFfiFutureCallback{}", return_type.canonical_name(),)
+            }
+            FfiType::FutureCallbackData => "Pointer".to_string(),
         }
     }
 }
 
 pub mod filters {
     use uniffi_bindgen::backend::Literal;
+    use uniffi_bindgen::interface::ResultType;
 
     use super::*;
 
@@ -661,6 +707,35 @@ pub mod filters {
 
     pub fn read_fn(codetype: &impl CodeType) -> Result<String, askama::Error> {
         Ok(format!("{}.read", codetype.ffi_converter_name(oracle())))
+    }
+
+    pub fn error_handler(result_type: &ResultType) -> Result<String, askama::Error> {
+        match &result_type.throws_type {
+            Some(error_type) => type_name(error_type),
+            None => Ok("NullCallStatusErrorHandler".into()),
+        }
+    }
+
+    pub fn future_callback_handler(result_type: &ResultType) -> Result<String, askama::Error> {
+        let return_component = match &result_type.return_type {
+            Some(return_type) => return_type.canonical_name(),
+            None => "Void".into(),
+        };
+        let throws_component = match &result_type.throws_type {
+            Some(throws_type) => format!("_{}", throws_type.canonical_name()),
+            None => "".into(),
+        };
+        Ok(format!(
+            "UniFfiFutureCallbackHandler{return_component}{throws_component}"
+        ))
+    }
+
+    pub fn future_continuation_type(result_type: &ResultType) -> Result<String, askama::Error> {
+        let return_type_name = match &result_type.return_type {
+            Some(t) => type_name(t)?,
+            None => "Unit".into(),
+        };
+        Ok(format!("Continuation<{return_type_name}>"))
     }
 
     pub fn render_literal(

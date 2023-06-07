@@ -84,3 +84,7 @@ interface VoidCallbackWithErrorProcessor {
     [Throws=ComplexError]
     void process(u64 new_value);
 };
+
+interface Caller {
+  constructor();
+};

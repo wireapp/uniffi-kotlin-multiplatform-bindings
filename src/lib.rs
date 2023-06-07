@@ -8,7 +8,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use include_dir::{include_dir, Dir};
 use serde::{Deserialize, Serialize};
 use uniffi_bindgen::backend::TemplateExpression;
-use uniffi_bindgen::{BindingGenerator, BindingGeneratorConfig, ComponentInterface};
+use uniffi_bindgen::{BindingGenerator, BindingGeneratorConfig, ComponentInterface, macro_metadata};
 
 pub use gen_kotlin_multiplatform::generate_bindings;
 
@@ -22,6 +22,7 @@ pub struct Config {
     custom_types: HashMap<String, CustomTypeConfig>,
     #[serde(default)]
     external_packages: HashMap<String, String>,
+    library_file: Option<Utf8PathBuf>
 }
 
 // impl<'de> Deserialize<'de> for Config {
@@ -93,6 +94,11 @@ impl BindingGenerator for KotlinBindingGenerator {
         config: Self::Config,
         out_dir: &Utf8Path,
     ) -> Result<()> {
+        let mut ci = ci;
+        if let Some(library_file) = &config.library_file {
+            macro_metadata::add_to_ci_from_library(&mut ci, library_file)?;
+        }
+
         let bindings = generate_bindings(&config, &ci)?;
 
         create_target(&config, include_dir!("kotlin-uniffi-base/src/commonMain/kotlin"), out_dir, "commonMain", bindings.common);

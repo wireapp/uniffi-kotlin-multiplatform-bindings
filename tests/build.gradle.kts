@@ -11,7 +11,7 @@ buildscript {
 }
 
 plugins {
-    kotlin("multiplatform") version "1.7.21"
+    kotlin("multiplatform") version "1.8.20"
 }
 
 allprojects {
@@ -51,11 +51,21 @@ subprojects {
         commandLine("cargo", "build")
     }
 
+    // Creating the bindings requires analysing the compiled libary in order to get the metadata from
+    // uniffi's proc macro output
+    // TODO implement that for coverall and external_types
+    val createBindings = tasks.register("createBindings", Exec::class) {
+        group = "uniffi"
+        workingDir(crateDir)
+        commandLine("cargo", "run", "--bin", "create_bindings")
+        dependsOn(buildCrate)
+    }
+
     val copyBindings = tasks.register("copyBindings", Copy::class) {
         group = "uniffi"
         from(crateTargetBindingsDir)
         into(generatedDir)
-        dependsOn(buildCrate)
+        dependsOn(createBindings)
     }
 
     val copyBinariesToProcessedRessources = tasks.register("copyBinaries", Copy::class) {
@@ -119,6 +129,11 @@ subprojects {
                     }
                 }
             }
+            binaries {
+                executable {
+                    entryPoint = "main"
+                }
+            }
         }
 
         sourceSets {
@@ -127,6 +142,7 @@ subprojects {
                 dependencies {
                     implementation("com.squareup.okio:okio:3.2.0")
                     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
                 }
             }
             val commonTest by getting {

@@ -2,12 +2,23 @@ import callbacks.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldInclude
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.expect
 
+// TODO reenable other test suites
+// TODO port additional test from uniffi
 class CallbacksTest {
 
     class KotlinGetters : ForeignGetters {
-        override fun getBool(v: Boolean, argumentTwo: Boolean): Boolean = v xor argumentTwo
+        override fun getBool(v: Boolean, argumentTwo: Boolean): Boolean {
+            println("meow?")
+            return v xor argumentTwo
+        }
+
         override fun getString(v: String, arg2: Boolean): String {
             if (v == "bad-argument") {
                 throw SimpleException.BadArgument("bad argument")
@@ -31,15 +42,30 @@ class CallbacksTest {
         override fun getList(v: List<Int>, arg2: Boolean): List<Int> = if (arg2) v else listOf()
     }
 
+    suspend fun testSuspendFun(): Int {
+        delay(1000)
+        return 42
+    }
+
     @Test
     fun callbackAsArgument() {
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+            secondAnswer shouldBe 41u
+            assertEquals(41u, secondAnswer)
+            println("secondAnswer: ${secondAnswer}")
+        }
+        runBlocking {
+            doNothing(1u)
+        }
+//
         val rustGetters = RustGetters()
 
         val callback = KotlinGetters()
         listOf(true, false).forEach { v ->
             val flag = true
-            val expected = callback.getBool(v, flag)
             val observed = rustGetters.getBool(callback, v, flag)
+            val expected = callback.getBool(v, flag)
             expected shouldBe observed
         }
 
@@ -85,7 +111,7 @@ class CallbacksTest {
         }.also {
             it.reason shouldBe RuntimeException("something failed").toString()
         }
-
+//
         rustGetters.destroy()
     }
 
@@ -110,49 +136,192 @@ class CallbacksTest {
         rustStringifier.destroy()
     }
 
-        @Test
-        fun callbackReturningVoid() {
-            val answer = 42uL
+    @Test
+    fun callbackClassTest() {
+        val result = runBlocking { doSomething(2u) }
+        println(result)
+    }
 
-            val callback = object : VoidCallback {
-                public var answer: ULong? = null;
+    @Test
+    fun doMoreTest() {
+        val result = runBlocking { doAWholeLotMore(4u) }
+        println(result)
+    }
 
-                override fun callBack(newValue: ULong) {
-                    this.answer = newValue
-                }
-            }
-
-            VoidCallbackProcessor(answer).use {
-                it.process(callback)
-            }
-
-            callback.answer shouldBe answer
+    @Test
+    fun callbackReturningVoid() {
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+//                assertEquals(41u, secondAnswer)
+            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
         }
 
-        @Test
-        fun callBackReturningResultOfVoid() {
-            val answer = 42uL
-            val errorMessage = "That feels off"
+        val answer = 42uL
 
-            val throwingCallback = object : VoidCallbackWithError {
-                public var answer: ULong? = null;
+        val callback = object : VoidCallback {
+            public var answer: ULong? = null;
 
-
-                override fun callBack(newValue: ULong) {
-                    if (newValue != 42uL) {
-                        throw ComplexException.UnexpectedErrorWithReason(errorMessage)
-                    }
-                    this.answer = answer
-                }
+            override fun callBack(newValue: ULong) {
+                this.answer = newValue
             }
-
-            VoidCallbackWithErrorProcessor(throwingCallback).use {
-                shouldThrow<ComplexException> { it.process(7uL) }
-                    .message shouldInclude errorMessage
-
-                it.process(answer)
-            }
-
-            throwingCallback.answer shouldBe answer
         }
+
+        VoidCallbackProcessor(answer).use {
+            it.process(callback)
+        }
+
+        callback.answer shouldBe answer
+    }
+
+    @Test
+    fun callBackReturningResultOfVoid() {
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+//            runBlocking { doAWholeLotMore(7u) }
+//
+        val answer = 42uL
+        val errorMessage = "That feels off"
+
+        val throwingCallback = object : VoidCallbackWithError {
+            public var answer: ULong? = null;
+
+
+            override fun callBack(newValue: ULong) {
+                if (newValue != 42uL) {
+                    throw ComplexException.UnexpectedErrorWithReason(errorMessage)
+                }
+                this.answer = answer
+            }
+        }
+
+        VoidCallbackWithErrorProcessor(throwingCallback).use {
+            shouldThrow<ComplexException> { it.process(7uL) }
+                .message shouldInclude errorMessage
+
+            it.process(answer)
+        }
+
+        throwingCallback.answer shouldBe answer
+    }
+
+    @Test
+    fun asyncTest() {
+        val answer = runBlocking {
+            meowAsync(42u)
+        }
+        answer shouldBe 42u
+        println("meow")
+    }
+
+    @Test
+    fun testAsyncFunctionWithResultReturnType() {
+        val answer = runBlocking { asyncError(42u) }
+        assertEquals(42u, answer)
+
+        shouldThrow<SimpleException> {
+            runBlocking {
+                asyncError(3u)
+            }
+        }
+    }
+
+    @Test
+    fun testAsyncFunctionWithUnitReturnType() {
+        runBlocking { asyncUnit(42u) }
+        runBlocking { asyncNoInputParam() }
+
+        Caller().use { caller ->
+            assertEquals(41u, caller.getInner())
+            runBlocking { caller.interiorMutation() }
+            assertEquals(42u, caller.getInner())
+        }
+    }
+
+    @Test
+    fun procMacroTest() {
+        val answer = cthulu(41u, 1u)
+        answer shouldBe 42u
+
+        // Rust call status sieht korrumpiert aus, weil die Werte des error_bufs wie zufällig aussehen
+        // Crasht mit sigsev, auch wenn der call status nicht überprüft wird
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+        val anotherOne = cthulu(32u, 10u)
+        anotherOne shouldBe answer
+
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+        // gibt nichts zurück und crasht genau dann wenn der callstatus überprüft wird.
+        runBlocking {
+            doNothing(1u)
+        }
+
+        runBlocking { doSomething(7u) } shouldBe 42u
+
+//        /// ... also liegt auch bei der Verarbeitung des Rückgabewerts etwas im argen
+    }
+
+
+    @Test
+    fun asyncMethodTest() {
+        val someObject = object {
+            val someList: MutableList<String> = mutableListOf()
+
+            fun add(times: Int) {
+                someList.addAll(generateSequence { "Meow" }.take(times))
+            }
+        }
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+//            secondAnswer shouldBe 41u
+            assertEquals(41u, secondAnswer)
+//            secondAnswer shouldBe 42u
+            someObject.add(1024)
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+        Caller().use {
+            val answer = runBlocking { it.call() }
+            assertEquals(42u, answer)
+        }
+
+        runBlocking {
+            val secondAnswer = meowAsync(41u)
+//            secondAnswer shouldBe 41u
+            println("secondAnswer: ${secondAnswer}")
+        }
+
+        Caller().use {
+            val answer = runBlocking { it.call() }
+            assertEquals(42u, answer)
+        }
+
+        val rustGetters = RustGetters()
+        val callback = KotlinGetters()
+        listOf(true, false).forEach { v ->
+            val flag = true
+            val observed = rustGetters.getBool(callback, v, flag)
+//            val expected = callback.getBool(v, flag)
+//            expected shouldBe observed
+        }
+    }
 }
