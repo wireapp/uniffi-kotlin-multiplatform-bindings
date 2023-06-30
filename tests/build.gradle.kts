@@ -31,29 +31,31 @@ subprojects {
     apply(plugin = "kotlinx-atomicfu")
     apply(plugin = "org.jetbrains.kotlin.multiplatform")
 
+    val hostOs = System.getProperty("os.name")
+    val hostArch = System.getProperty("os.arch")
+    val isMingwX64 = hostOs.startsWith("Windows")
+
+    val cargoTarget = when {
+        hostOs == "Mac OS X" && hostArch == "aarch64" -> "aarch64-apple-darwin"
+        hostOs == "Mac OS X" && hostArch == "x86_64" -> "x86_64-apple-darwin"
+        hostOs == "Linux" -> "x86_64-unknown-linux-gnu"
+        else -> throw GradleException("Host OS $hostOs is not supported.")
+    }
+
     val generatedDir = buildDir.resolve("generated").resolve("uniffi")
     val crateDir = projectDir.resolve("uniffi")
-    val crateTargetDir = crateDir.resolve("target")
-    val crateTargetBindingsDir = crateTargetDir.resolve("bindings")
+    val crateTargetDir = crateDir.resolve("target/$cargoTarget")
+    val crateTargetBindingsDir = crateDir.resolve("target").resolve("bindings")
     val crateTargetLibDir = crateTargetDir.resolve("debug")
-//    fun resolveDynamicLibFile(crate: String, lib: String = crate) =
-//        resolveTargetLibDir(crate).resolve("lib$lib.so")
-
-//    val crates = listOf("coverall", "callbacks", "external_types")
-//    val cratesDynamicLibs = crates.map { resolveDynamicLibFile(it) } + listOf(
-////    resolveDynamicLibFile("external_types", "crate_one"),
-////    resolveDynamicLibFile("external_types", "crate_two")
-//    )
 
     val buildCrate = tasks.register("buildCrate", Exec::class) {
         group = "uniffi"
         workingDir(crateDir)
-        commandLine("cargo", "build")
+        commandLine("cargo", "build", "--target", cargoTarget)
     }
 
-    // Creating the bindings requires analysing the compiled libary in order to get the metadata from
+    // Creating the bindings requires analysing the compiled library in order to get the metadata from
     // uniffi's proc macro output
-    // TODO implement that for coverall and external_types
     val createBindings = tasks.register("createBindings", Exec::class) {
         group = "uniffi"
         workingDir(crateDir)
@@ -70,10 +72,27 @@ subprojects {
 
     val copyBinariesToProcessedRessources = tasks.register("copyBinaries", Copy::class) {
         group = "uniffi"
+
+        val sharedObjectPattern = when {
+            hostOs == "Mac OS X" -> "*.dylib"
+            hostOs == "Linux" -> "*.so"
+            else -> throw IllegalStateException()
+        }
+        val destinationResourceDirectory = when {
+            hostOs == "Mac OS X" && hostArch == "aarch64" -> "darwin-aarch64"
+            hostOs == "Mac OS X" && hostArch == "x86_64" -> "darwin-x86-64"
+            hostOs == "Linux" -> "linux-x86-64"
+            else -> throw IllegalStateException()
+        }
+
         from(crateTargetLibDir)
-        include("*.so")
+
+        include(sharedObjectPattern)
         into(
-            buildDir.resolve("processedResources").resolve("jvm").resolve("main").resolve("linux-x86-64")
+            buildDir.resolve("processedResources")
+                .resolve("jvm")
+                .resolve("main")
+                .resolve(destinationResourceDirectory)
         )
         dependsOn(buildCrate)
     }
@@ -96,17 +115,10 @@ subprojects {
                 useJUnitPlatform()
             }
         }
-//    js(BOTH) {
-//        browser {
-//            commonWebpackConfig {
-//                cssSupport.enabled = true
-//            }
-//        }
-//    }
-        val hostOs = System.getProperty("os.name")
-        val isMingwX64 = hostOs.startsWith("Windows")
+
         val nativeTarget = when {
-            hostOs == "Mac OS X" -> macosX64("native")
+            hostOs == "Mac OS X" && hostArch == "aarch64" -> macosArm64("native")
+            hostOs == "Mac OS X" && hostArch == "x86_64" -> macosX64("native")
             hostOs == "Linux" -> linuxX64("native")
             isMingwX64 -> mingwX64("native")
             else -> throw GradleException("Host OS is not supported in Kotlin/Native.")

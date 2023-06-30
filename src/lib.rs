@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs;
+use std::{fs, os};
 use std::fs::File;
 use std::io::Write;
 
@@ -95,8 +95,18 @@ impl BindingGenerator for KotlinBindingGenerator {
         out_dir: &Utf8Path,
     ) -> Result<()> {
         let mut ci = ci;
+
         if let Some(library_file) = &config.library_file {
-            macro_metadata::add_to_ci_from_library(&mut ci, library_file)?;
+            #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+            let target_triple = "x86_64-apple-darwin";
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            let target_triple = "aarch64-apple-darwin";
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            let target_triple = "x86_64-unknown-linux-gnu";
+
+            let effective_library_file = library_file.to_string().replace("<cargo-target>", target_triple);
+
+            macro_metadata::add_to_ci_from_library(&mut ci, Utf8Path::new(&effective_library_file))?;
         }
 
         let bindings = generate_bindings(&config, &ci)?;
