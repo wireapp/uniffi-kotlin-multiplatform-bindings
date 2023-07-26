@@ -1,0 +1,25 @@
+[package]
+name = "futures"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "futures"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+uniffi = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e", features = ["tokio"] }
+uniffi_macros = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
+tokio = { version = "1.24.1", features = ["time"] }
+
+# should go into create_bindings-specific dependencies
+uniffi_build = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
+uniffi_bindgen = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
+uniffi-kotlin-multiplatform = { path = "../../.." }
+camino = "1.1.1"
+
+[build-dependencies]
+uniffi_build = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
+uniffi_bindgen = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
+uniffi-kotlin-multiplatform = { path = "../../.." }
+camino = "1.1.1"
