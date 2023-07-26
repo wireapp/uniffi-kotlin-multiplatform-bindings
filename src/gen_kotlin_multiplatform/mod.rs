@@ -46,6 +46,21 @@ macro_rules! kotlin_template {
     };
 }
 
+// Dummy templates are copied as is. They are useful to reuse the existing logic
+macro_rules! kotlin_dummy_template {
+    ($KotlinTemplate:ident, $source_file:literal) => {
+        #[derive(Template)]
+        #[template(syntax = "kt", escape = "none", path = $source_file)]
+        pub struct $KotlinTemplate {}
+
+        impl $KotlinTemplate {
+            pub fn new() -> Self {
+                Self { }
+            }
+        }
+    };
+}
+
 macro_rules! kotlin_callback_interface_template {
     ($KotlinTemplate:ident, $source_file:literal) => {
         #[derive(Template)]
@@ -259,6 +274,14 @@ macro_rules! render_kotlin_template {
     };
 }
 
+kotlin_dummy_template!(
+    FfiConverterForeignExecutorTemplateCommon,
+    "common/FfiConverterForeignExecutor.kt.j2"
+);
+kotlin_dummy_template!(
+    UniFfiForeignExecutorCallbackTemplateCommon,
+    "common/UniFfiForeignExecutorCallback.kt.j2"
+);
 kotlin_template!(
     AsyncTypesTemplateCommon,
     "common/AsyncTypesTemplate.kt.j2"
@@ -273,6 +296,10 @@ kotlin_callback_interface_template!(
     "common/CallbackInterfaceTemplate.kt.j2"
 );
 
+kotlin_dummy_template!(
+    UniFfiForeignExecutorCallbackTemplateJvm,
+    "jvm/UniFfiForeignExecutorCallback.kt.j2"
+);
 kotlin_template!(
     AsyncTypesTemplateJvm,
     "jvm/AsyncTypesTemplate.kt.j2"
@@ -290,6 +317,10 @@ kotlin_callback_interface_template!(
     "jvm/CallbackInterfaceTemplate.kt.j2"
 );
 
+kotlin_dummy_template!(
+    UniFfiForeignExecutorCallbackTemplateNative,
+    "native/UniFfiForeignExecutorCallback.kt.j2"
+);
 kotlin_template!(
     AsyncTypesTemplateNative,
     "native/AsyncTypesTemplate.kt.j2"
@@ -384,6 +415,14 @@ pub fn generate_bindings(
                 // TODO this need specific imports in some classes.
             }
 
+            Type::ForeignExecutor => {
+                // The presence of the ForeignExecutor type indicates that we need to add the async infrastructure
+                let executor_template_common = FfiConverterForeignExecutorTemplateCommon::new();
+                render_kotlin_template!(executor_template_common, "FfiConverterForeignExecutor.kt", common_wrapper);
+                let callback_template_common = UniFfiForeignExecutorCallbackTemplateCommon::new();
+                render_kotlin_template!(callback_template_common, "UniFfiForeignExecutorCallback.kt", common_wrapper);
+            }
+
             Type::Map(key_type, value_type) => {
                 let template = MapTemplateCommon::new(
                     key_type.clone(),
@@ -459,6 +498,12 @@ pub fn generate_bindings(
                 render_kotlin_template!(template, file_name, jvm_wrapper);
             }
 
+            Type::ForeignExecutor => {
+                // The presence of the ForeignExecutor type indicates that we need to add the async infrastructure
+                let template = UniFfiForeignExecutorCallbackTemplateJvm::new();
+                render_kotlin_template!(template, "UniFfiForeignExecutorCallback.kt", jvm_wrapper);
+            }
+
             _ => {}
         }
     }
@@ -511,6 +556,12 @@ pub fn generate_bindings(
                 render_kotlin_template!(template, file_name, native_wrapper);
             }
 
+            Type::ForeignExecutor => {
+                // The presence of the ForeignExecutor type indicates that we need to add the async infrastructure
+                let template = UniFfiForeignExecutorCallbackTemplateNative::new();
+                render_kotlin_template!(template, "UniFfiForeignExecutorCallback.kt", native_wrapper);
+            }
+
             _ => {}
         }
     }
@@ -557,7 +608,7 @@ impl KotlinCodeOracle {
             Type::Duration => Box::new(miscellany::DurationCodeType),
 
             Type::Enum(id) => Box::new(enum_::EnumCodeType::new(id)),
-            Type::Object{ name, .. } => Box::new(object::ObjectCodeType::new(name)),
+            Type::Object { name, .. } => Box::new(object::ObjectCodeType::new(name)),
             Type::Record(id) => Box::new(record::RecordCodeType::new(id)),
             Type::Error(id) => Box::new(error::ErrorCodeType::new(id)),
             Type::CallbackInterface(id) => {
@@ -657,7 +708,7 @@ impl CodeOracle for KotlinCodeOracle {
             FfiType::ForeignExecutorHandle => "ULong".to_string(),
             FfiType::ForeignExecutorCallback => "UniFfiForeignExecutorCallback".to_string(),
             FfiType::FutureCallback { return_type } => {
-                format!("UniFfiFutureCallback{}", return_type.canonical_name(),)
+                format!("UniFfiFutureCallback{}", return_type.canonical_name())
             }
             FfiType::FutureCallbackData => "Pointer".to_string(),
         }

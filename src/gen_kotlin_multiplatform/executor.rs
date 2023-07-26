@@ -9,7 +9,7 @@ impl CodeType for ForeignExecutorCodeType {
         "CoroutineScope".into()
     }
 
-    fn canonical_name(&self, oracle: &dyn CodeOracle) -> String {
+    fn canonical_name(&self, _oracle: &dyn CodeOracle) -> String {
         "ForeignExecutor".into()
     }
 
