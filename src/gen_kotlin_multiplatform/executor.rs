@@ -4,7 +4,6 @@ pub struct ForeignExecutorCodeType;
 
 impl CodeType for ForeignExecutorCodeType {
     fn type_label(&self, _oracle: &dyn CodeOracle) -> String {
-        // TODO itesign check this also works in Kotlin/Native
         // Kotlin uses a CoroutineScope for ForeignExecutor
         "CoroutineScope".into()
     }

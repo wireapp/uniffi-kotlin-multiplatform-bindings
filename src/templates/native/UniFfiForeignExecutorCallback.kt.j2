@@ -7,7 +7,6 @@ import kotlinx.coroutines.launch
 
 typealias UniFfiRustTaskCallback = CPointer<CFunction<(Pointer?) -> Unit>>
 
-// FIXME changed types
 @Suppress("ACTUAL_WITHOUT_EXPECT", "ACTUAL_TYPE_ALIAS_WITH_COMPLEX_SUBSTITUTION")
 actual typealias UniFfiForeignExecutorCallback = CPointer<CFunction<(ULong, UInt, UniFfiRustTaskCallback?, Pointer?) -> Unit>>
 

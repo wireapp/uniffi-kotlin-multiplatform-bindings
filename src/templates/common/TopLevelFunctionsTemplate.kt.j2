@@ -22,7 +22,6 @@ suspend fun {{ func.name()|fn_name }}({%- call helpers::arg_list_decl(func) -%})
     //
     // Make sure to retain a reference to the callback handler to ensure that it's not GCed before
     // it's invoked
-    // FIXME create future_callback_handler_data
     var callbackDataHolder: {{ func.result_type().borrow()|future_callback_handler }}Data? = null
     try {
         return coroutineScope {

@@ -3,8 +3,7 @@ import com.sun.jna.Pointer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// TODO unify this code with the native source set? See the comment in the corresponing file
-
+// TODO unify this code with the native source set? See the comment in the corresponding file
 interface UniFfiRustTaskCallback: Callback {
     fun invoke(rustTaskData: Pointer?)
 }

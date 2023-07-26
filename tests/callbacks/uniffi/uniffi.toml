@@ -1,4 +1,2 @@
 [bindings.kotlin-native]
-# A quick workaround, <local-cargo-target> will be replaced by the multiplatform bindings generator with the native
-# target of the compiling machine.
-library_file = "target/<cargo-target>/debug/libcallbacks.a"
+library_file = "target/debug/libcallbacks.so"

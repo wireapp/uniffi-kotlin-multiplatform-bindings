@@ -35,23 +35,16 @@ subprojects {
     val hostArch = System.getProperty("os.arch")
     val isMingwX64 = hostOs.startsWith("Windows")
 
-    val cargoTarget = when {
-        hostOs == "Mac OS X" && hostArch == "aarch64" -> "aarch64-apple-darwin"
-        hostOs == "Mac OS X" && hostArch == "x86_64" -> "x86_64-apple-darwin"
-        hostOs == "Linux" -> "x86_64-unknown-linux-gnu"
-        else -> throw GradleException("Host OS $hostOs is not supported.")
-    }
-
     val generatedDir = buildDir.resolve("generated").resolve("uniffi")
     val crateDir = projectDir.resolve("uniffi")
-    val crateTargetDir = crateDir.resolve("target/$cargoTarget")
+    val crateTargetDir = crateDir.resolve("target")
     val crateTargetBindingsDir = crateDir.resolve("target").resolve("bindings")
     val crateTargetLibDir = crateTargetDir.resolve("debug")
 
     val buildCrate = tasks.register("buildCrate", Exec::class) {
         group = "uniffi"
         workingDir(crateDir)
-        commandLine("cargo", "build", "--target", cargoTarget)
+        commandLine("cargo", "build")
     }
 
     // Creating the bindings requires analysing the compiled library in order to get the metadata from

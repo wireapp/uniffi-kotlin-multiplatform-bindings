@@ -9,16 +9,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.expect
 
-// TODO reenable other test suites
-// TODO port additional test from uniffi
 class CallbacksTest {
 
     class KotlinGetters : ForeignGetters {
-        override fun getBool(v: Boolean, argumentTwo: Boolean): Boolean {
-            println("meow?")
-            return v xor argumentTwo
-        }
-
+        override fun getBool(v: Boolean, argumentTwo: Boolean): Boolean = v xor argumentTwo
         override fun getString(v: String, arg2: Boolean): String {
             if (v == "bad-argument") {
                 throw SimpleException.BadArgument("bad argument")
@@ -42,30 +36,15 @@ class CallbacksTest {
         override fun getList(v: List<Int>, arg2: Boolean): List<Int> = if (arg2) v else listOf()
     }
 
-    suspend fun testSuspendFun(): Int {
-        delay(1000)
-        return 42
-    }
-
     @Test
     fun callbackAsArgument() {
-        runBlocking {
-            val secondAnswer = meowAsync(41u)
-            secondAnswer shouldBe 41u
-            assertEquals(41u, secondAnswer)
-            println("secondAnswer: ${secondAnswer}")
-        }
-        runBlocking {
-            doNothing(1u)
-        }
-//
         val rustGetters = RustGetters()
 
         val callback = KotlinGetters()
         listOf(true, false).forEach { v ->
             val flag = true
-            val observed = rustGetters.getBool(callback, v, flag)
             val expected = callback.getBool(v, flag)
+            val observed = rustGetters.getBool(callback, v, flag)
             expected shouldBe observed
         }
 
@@ -111,7 +90,6 @@ class CallbacksTest {
         }.also {
             it.reason shouldBe RuntimeException("something failed").toString()
         }
-//
         rustGetters.destroy()
     }
 
@@ -152,7 +130,6 @@ class CallbacksTest {
     fun callbackReturningVoid() {
         runBlocking {
             val secondAnswer = meowAsync(41u)
-//                assertEquals(41u, secondAnswer)
             secondAnswer shouldBe 41u
             println("secondAnswer: ${secondAnswer}")
         }
@@ -176,14 +153,19 @@ class CallbacksTest {
 
     @Test
     fun callBackReturningResultOfVoid() {
-        runBlocking {
-            val secondAnswer = meowAsync(41u)
-            secondAnswer shouldBe 41u
-            println("secondAnswer: ${secondAnswer}")
-        }
+        // FIXME Running the commented out block below before the rest of the test will make it fail on the JVM
+        //       Possibly, there is something wrong with the lifetime of the callbacks in use as JNA prints the following
+        //       > JNA: callback object has been garbage collected
+        //       > JNA: callback object has been garbage collected
+        //       However, disabling the GC does not make the tests pass
+        //           ./gradlew -Dorg.gradle.jvmargs="-XX:+UnlockExperimentalVMOptions ^CX:+UseEpsilonGC" :callbacks:test
+        //       Strangely, using `assertEquals` instead of `shouldBe` makes the tests pass
+//        runBlocking {
+//            val secondAnswer = meowAsync(41u)
+//            secondAnswer shouldBe 41u
+//            println("secondAnswer: ${secondAnswer}")
+//        }
 
-//            runBlocking { doAWholeLotMore(7u) }
-//
         val answer = 42uL
         val errorMessage = "That feels off"
 
@@ -247,8 +229,6 @@ class CallbacksTest {
         val answer = cthulu(41u, 1u)
         answer shouldBe 42u
 
-        // Rust call status sieht korrumpiert aus, weil die Werte des error_bufs wie zufällig aussehen
-        // Crasht mit sigsev, auch wenn der call status nicht überprüft wird
         runBlocking {
             val secondAnswer = meowAsync(41u)
             secondAnswer shouldBe 41u
@@ -270,14 +250,11 @@ class CallbacksTest {
             println("secondAnswer: ${secondAnswer}")
         }
 
-        // gibt nichts zurück und crasht genau dann wenn der callstatus überprüft wird.
         runBlocking {
             doNothing(1u)
         }
 
         runBlocking { doSomething(7u) } shouldBe 42u
-
-//        /// ... also liegt auch bei der Verarbeitung des Rückgabewerts etwas im argen
     }
 
 
@@ -292,9 +269,7 @@ class CallbacksTest {
         }
         runBlocking {
             val secondAnswer = meowAsync(41u)
-//            secondAnswer shouldBe 41u
             assertEquals(41u, secondAnswer)
-//            secondAnswer shouldBe 42u
             someObject.add(1024)
             println("secondAnswer: ${secondAnswer}")
         }
@@ -306,7 +281,7 @@ class CallbacksTest {
 
         runBlocking {
             val secondAnswer = meowAsync(41u)
-//            secondAnswer shouldBe 41u
+            assertEquals(secondAnswer, 41u)
             println("secondAnswer: ${secondAnswer}")
         }
 
@@ -320,8 +295,8 @@ class CallbacksTest {
         listOf(true, false).forEach { v ->
             val flag = true
             val observed = rustGetters.getBool(callback, v, flag)
-//            val expected = callback.getBool(v, flag)
-//            expected shouldBe observed
+            val expected = callback.getBool(v, flag)
+            expected shouldBe observed
         }
     }
 }

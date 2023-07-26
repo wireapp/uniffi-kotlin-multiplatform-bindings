@@ -1,4 +1,3 @@
-// FIXME had to add crossinline
 // Call a rust function that returns a Result<>.  Pass in the Error class companion that corresponds to the Err
 internal inline fun <U, E: Exception> rustCallWithError(errorHandler: CallStatusErrorHandler<E>, crossinline callback: (RustCallStatus) -> U): U =
     withRustCallStatus { status ->

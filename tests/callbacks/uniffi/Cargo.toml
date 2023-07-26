@@ -7,15 +7,12 @@ edition = "2021"
 name = "callbacks"
 crate-type = ["cdylib", "staticlib"]
 
-[[bin]]
-name = "create_bindings"
-
 [dependencies]
 uniffi = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
 uniffi_macros = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
 once_cell = "1.12"
 thiserror = "1.0"
-# fixme should go into create_bindings-specific dependencies
+# should go into create_bindings-specific dependencies
 uniffi_build = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
 uniffi_bindgen = { git = "https://github.com/mozilla/uniffi-rs.git", rev= "22b8c21f117faa95c6d398baad463ef7f108749e" }
 uniffi-kotlin-multiplatform = { path = "../../.." }

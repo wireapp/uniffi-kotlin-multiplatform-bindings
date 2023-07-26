@@ -35,7 +35,7 @@ typedef struct RustBuffer
 typedef int32_t (*ForeignCallback)(uint64_t, int32_t, const uint8_t *_Nonnull, int32_t, RustBuffer *_Nonnull);
 
 // Task defined in Rust that the foreign language executes
-// FIXME why would that be nullable?
+// TODO why would that be nullable?
 typedef void (*UniFfiRustTaskCallback)(const void * _Nullable);
 
 // Callback to execute Rust tasks using a foreign language Task
@@ -45,7 +45,6 @@ typedef void (*UniFfiRustTaskCallback)(const void * _Nullable);
 //   delay: Delay in MS
 //   task: UniFfiRustTaskCallback to call
 //   task_data: data to pass the task callback
-// FIXME why is the task callback nullable but not a pointer?
 typedef void (*UniFfiForeignExecutorCallback)(size_t, uint32_t, UniFfiRustTaskCallback _Nullable, const void * _Nullable);
 
 typedef struct ForeignBytes
@@ -64,7 +63,6 @@ typedef struct RustCallStatus {
 // ⚠️ increment the version suffix in all instances of UNIFFI_SHARED_HEADER_V4 in this file.           ⚠️
 #endif // def UNIFFI_SHARED_H
 
-// FIXME header_ffi_type_name vs. ffi_header_type_name
 {%- for ffi_type in ci.iter_future_callback_params() %}
 typedef void (*UniFfiFutureCallback{{ ffi_type.canonical_name() }})(const void * _Nonnull, {{ ffi_type|ffi_header_type_name }}, RustCallStatus);
 {%- endfor %}

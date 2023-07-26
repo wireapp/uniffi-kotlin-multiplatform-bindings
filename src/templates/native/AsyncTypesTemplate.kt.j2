@@ -37,7 +37,8 @@ actual fun create{{ result_type|future_callback_handler }}Data(continuation: {{ 
 }
 
 private fun create{{ result_type|future_callback_handler }}(): {{ result_type|future_callback_handler }} =
-    staticCFunction { callbackData: Pointer?, returnValue: {{ callback_param|ffi_type_name }}, callStatus: RustCallStatusByValue ->
+    staticCFunction { callbackData: Pointer?,
+        {%- if result_type.return_type.is_some() %} returnValue{% else %} _{% endif %}: {{ callback_param|ffi_type_name }}, callStatus: RustCallStatusByValue ->
         assertNotNull(callbackData, "received no continuation to resume...")
         // the StableRef is disposed in the scope that held onto the DropHandler wrapper
         val stableRef = callbackData.asStableRef<{{ result_type|future_continuation_type }}>()
