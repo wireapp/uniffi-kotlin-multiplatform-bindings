@@ -839,4 +839,13 @@ pub mod filters {
     pub fn unquote(nm: &str) -> Result<String, askama::Error> {
         Ok(nm.trim_matches('`').to_string())
     }
+
+    /// Transforms Pointer types to nullable pointer to work around cinterop not respecting
+    /// nullability annotations in header files. This leads to type mismatches.
+    pub fn nullify_pointer(type_name: &str) -> Result<String, askama::Error> {
+        Ok(match type_name {
+            "Pointer" => "Pointer?".to_string(),
+            _ => type_name.to_string(),
+        })
+    }
 }
