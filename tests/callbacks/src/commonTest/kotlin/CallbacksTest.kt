@@ -157,9 +157,10 @@ class CallbacksTest {
         //       Possibly, there is something wrong with the lifetime of the callbacks in use as JNA prints the following
         //       > JNA: callback object has been garbage collected
         //       > JNA: callback object has been garbage collected
-        //       However, disabling the GC does not make the tests pass
-        //           ./gradlew -Dorg.gradle.jvmargs="-XX:+UnlockExperimentalVMOptions ^CX:+UseEpsilonGC" :callbacks:test
-        //       Strangely, using `assertEquals` instead of `shouldBe` makes the tests pass
+        // Consequently, if you use the "no-op GC" the tests pass
+        //     tasks.withType<KotlinJvmTest>().configureEach {
+        //        this.jvmArgs = listOf("-XX:+UnlockExperimentalVMOptions", "-XX:+UseEpsilonGC")
+        //    }
 //        runBlocking {
 //            val secondAnswer = meowAsync(41u)
 //            secondAnswer shouldBe 41u
