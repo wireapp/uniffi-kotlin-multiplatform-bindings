@@ -44,7 +44,7 @@ class {{ type_name }}(
     {% for meth in obj.methods() -%}
     {%- match meth.throws_type() -%}
     {%- when Some with (throwable) %}
-    @Throws({{ throwable|type_name }}::class)
+    @Throws({{ throwable|type_name }}::class{%- if meth.is_async() -%}, CancellationException::class{%- endif -%})
     {%- else -%}
     {%- endmatch %}
     {%- if meth.is_async() %}
