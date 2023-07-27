@@ -12,11 +12,14 @@ import kotlinx.coroutines.coroutineScope
 // FFI type for callback handlers
 
 {%- for callback_param in ci.iter_future_callback_params() %}
-actual class UniFfiFutureCallback{{ callback_param.canonical_name() }}(private val inner: (ULong, {{ callback_param|ffi_type_name }}, RustCallStatusByValue) -> Unit) : com.sun.jna.Callback {
-    // Note: callbackData is always 0.  We could pass Rust a pointer/usize to represent the
+actual class UniFfiFutureCallback{{ callback_param.canonical_name() }}(private val inner: (ULong, {{ callback_param|ffi_type_name|nullify_pointer }}, RustCallStatusByValue) -> Unit) : com.sun.jna.Callback {
+    // Note: callbackData does not contain a valid pointer. We could pass Rust a pointer/usize to represent the
     // continuation, but with JNA it's easier to just store it in the callback handler.
-    // FIXME use template function for _callbackData
-    fun invoke(_callbackData: ULong, returnValue: {{ callback_param|ffi_type_name }}, callStatus: RustCallStatusByValue) {
+    // FIXME nullifying pointers does not seem right, but otherwise it crashes (witnessed for a nullable UByte callback parameter)
+    // on the other hand, nullifying pointers could be all that is needed because this covers all structs etc and
+    // primitive types implement Default which is hopefully used
+    // upstream, this reads \{\{ callback_param|ffi_type_name_by_value \}\}?
+    fun invoke(_callbackData: ULong, returnValue: {{ callback_param|ffi_type_name|nullify_pointer }}, callStatus: RustCallStatusByValue) {
         inner(_callbackData, returnValue, callStatus)
 }   }
 {%- endfor %}
@@ -28,12 +31,12 @@ actual class UniFfiFutureCallback{{ callback_param.canonical_name() }}(private v
 actual fun create{{ result_type|future_callback_handler }}Data(continuation: {{ result_type|future_continuation_type }})
                       : {{ result_type|future_callback_handler }}Data =
     {{ result_type|future_callback_handler }}Data(
-        UniFfiFutureCallback{{ callback_param.canonical_name() }} { _: ULong, returnValue: {{ callback_param|ffi_type_name }}, callStatus: RustCallStatusByValue ->
+        UniFfiFutureCallback{{ callback_param.canonical_name() }} { _: ULong, returnValue: {{ callback_param|ffi_type_name|nullify_pointer }}, callStatus: RustCallStatusByValue ->
            try {
                     checkCallStatus({{ result_type|error_handler }}, callStatus)
                     {%- match result_type.return_type %}
                     {%- when Some(return_type) %}
-                    continuation.resume({{ return_type|lift_fn }}(returnValue))
+                    continuation.resume({{ return_type|lift_fn }}(returnValue!!))
                     {%- when None %}
                     continuation.resume(Unit)
                     {%- endmatch %}
