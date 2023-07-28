@@ -90,9 +90,12 @@ object {{ foreign_callback_name }} {
 }
 
 object {{ ffi_converter_name }}: FfiConverterCallbackInterface<{{ type_name }}>() {
+    // prevent the callback from being GC'ed
+    private val foreignCallback = {{ foreign_callback_name }}.toForeignCallback()
+
     override fun register(lib: UniFFILib) {
         rustCall() { status ->
-            lib.{{ cbi.ffi_init_callback().name() }}({{ foreign_callback_name }}.toForeignCallback(), status)
+            lib.{{ cbi.ffi_init_callback().name() }}(foreignCallback, status)
         }
     }
 }
