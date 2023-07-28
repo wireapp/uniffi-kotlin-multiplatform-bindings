@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-use std::sync::RwLock;
-
 pub struct VoidCallbackProcessor {
     new_value: u64
 }
@@ -80,87 +77,8 @@ impl From<uniffi::UnexpectedUniFFICallbackError> for ComplexError {
     }
 }
 
-#[uniffi::export]
-pub fn cthulu(a: u64, b: u64) -> u64 {
-    a + b
-}
-
-pub fn meow(v: u64) -> u64 {
-    v
-}
-
-#[uniffi::export]
-pub async fn meow_async(v: u64) -> u64 {
-    v
-}
-
-#[uniffi::export]
-pub async fn async_error(v: u64) -> Result<u64, SimpleError> {
-    if v == 42 {
-        Ok(v)
-    } else {
-        Err(SimpleError::BadArgument)
-    }
-}
-
-#[uniffi::export]
-pub async fn async_unit(v: u64) {
-
-}
-
-#[uniffi::export]
-pub async fn async_no_input_param() {
-
-}
-
-#[uniffi::export]
-pub async fn do_nothing(v: u64) {}
-
-#[uniffi::export]
-pub async fn do_something(v: u64) -> u8 {
-    42
-}
-
-#[uniffi::export]
-pub async fn do_a_bit_more(v: u64) -> u16 {
-    42
-}
-
-#[uniffi::export]
-pub async fn do_a_lot_more(v: u64) -> u32 {
-    42
-}
-
-#[uniffi::export]
-pub async fn do_a_whole_lot_more(v: u64) -> u64 {
-    v
-}
-
 #[derive(Debug, Clone)]
 pub struct RustGetters;
-
-pub struct Caller {
-    inner: RwLock<u64>
-}
-
-impl Caller {
-    pub fn new() -> Caller { Caller { inner: RwLock::new(41)} }
-}
-
-#[uniffi::export]
-impl Caller {
-    pub async fn call(&self) -> u64 {
-        42
-    }
-    pub async fn interior_mutation(&self) {
-        let mut mut_inner = self.inner.write().unwrap();
-        *mut_inner = 42
-    }
-    fn get_inner(&self) -> u64 {
-        let guard = self.inner.read().unwrap();
-        guard.clone()
-    }
-}
 
 impl RustGetters {
     pub fn new() -> Self {
@@ -240,6 +158,10 @@ impl RustStringifier {
     }
 }
 
-// include!(concat!(env!("OUT_DIR"), "/callbacks.uniffi.rs"));
+#[uniffi::export]
+pub async fn calc_async(v: u64) -> u64 {
+    v
+}
+
 uniffi::include_scaffolding!("callbacks");
 uniffi_reexport_scaffolding!();
