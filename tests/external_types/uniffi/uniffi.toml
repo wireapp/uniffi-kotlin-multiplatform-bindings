@@ -1,2 +1,2 @@
 [bindings.kotlin-native]
-library_file = "target/debug/libexternal_types.so"
+library_file = "target/debug/libexternal_types.a"

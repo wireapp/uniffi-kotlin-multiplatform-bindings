@@ -1,2 +1,2 @@
 [bindings.kotlin-native]
-library_file = "target/debug/libfutures.so"
+library_file = "target/debug/libfutures.a"

@@ -1,2 +1,2 @@
 [bindings.kotlin-native]
-library_file = "target/debug/libcallbacks.so"
+library_file = "target/debug/libcallbacks.a"

@@ -1,2 +1,2 @@
 [bindings.kotlin-native]
-library_file = "target/debug/libcoverall.so"
+library_file = "target/debug/libcoverall.a"
