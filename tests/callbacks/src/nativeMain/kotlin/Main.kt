@@ -1,8 +1,8 @@
-import callbacks.meowAsync
+import callbacks.calcAsync
 import kotlinx.coroutines.runBlocking
 
 // A toy executable that can be debugged externally after building it
 fun main() {
-    val answer = runBlocking { meowAsync(42u) }
-    val secondAnswer = runBlocking { meowAsync(42u) }
+    val answer = runBlocking { calcAsync(42u) }
+    val secondAnswer = runBlocking { calcAsync(42u) }
 }
